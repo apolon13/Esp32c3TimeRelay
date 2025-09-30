@@ -3,15 +3,17 @@ mod network;
 mod schedule;
 mod time;
 
-use crate::schedule::{Job, Scheduler};
+use std::sync::mpsc;
+use crate::schedule::{PeriodicJob, Scheduler};
 use crate::time::remote::Request;
 use anyhow::Result;
 use chrono::{NaiveDateTime, ParseResult};
+use dotenv_codegen::dotenv;
 use embedded_svc::wifi::AuthMethod;
 use esp_idf_svc::{eventloop::EspSystemEventLoop, hal::prelude::Peripherals};
 use network::wifi::{Connection, Credentials};
-use dotenv_codegen::dotenv;
 use time::remote::model::NinjasResponse;
+use crate::time::timer::SyncTimer;
 
 fn main() -> Result<()> {
     esp_idf_svc::sys::link_patches();
@@ -35,16 +37,23 @@ fn main() -> Result<()> {
             NaiveDateTime::parse_from_str(v.datetime.as_str(), "%Y-%m-%d %H:%M:%S")
         },
     )?;
-    Scheduler::new(
-        dt,
+    let (_, rx) = mpsc::channel::<bool>();
+    Scheduler::new().run(
+        SyncTimer::new(rx, dt),
         vec![
-            Job::new(10, || {
-                println!("power on");
-            }),
-            Job::new(11, || {
-                println!("power off");
-            }),
+            PeriodicJob::new(
+                19,
+                Box::new(|| {
+                    println!("on");
+                }),
+            ),
+            PeriodicJob::new(
+                20,
+                Box::new(|| {
+                    println!("off");
+                }),
+            ),
         ],
-    ).run();
+    );
     Ok(())
 }

@@ -1,56 +1,65 @@
 use chrono::{NaiveDateTime, Timelike};
 use std::collections::HashMap;
-use std::thread::sleep;
-use std::time::Duration;
+use uuid::{uuid, Uuid};
 
-#[derive(Eq, Hash, PartialEq)]
-pub struct Job {
+pub struct PeriodicJob {
+    uuid: Uuid,
     run_at_hour: u32,
-    cb: fn(),
+    cb: Box<dyn Fn()>,
 }
 
-impl Job {
-    pub fn new(run_at_hour: u32, cb: fn()) -> Self {
-        Self { run_at_hour, cb }
-    }
-
-    pub fn run(&self, current_hour: u32) -> bool {
-        if self.run_at_hour == current_hour {
-            (self.cb)();
-            return true;
+impl PeriodicJob {
+    pub fn new(run_at_hour: u32, cb: Box<dyn Fn()>) -> Self {
+        Self {
+            uuid: Uuid::new_v4(),
+            run_at_hour,
+            cb,
         }
-        false
     }
-}
 
-pub struct Scheduler {
-    jobs: Vec<Job>,
-    current_time: NaiveDateTime,
-}
-
-impl Scheduler {
-    pub fn new(current_time: NaiveDateTime, jobs: Vec<Job>) -> Self {
-        Self { jobs, current_time }
+    pub fn time_is_come(&self, current_hour: u32) -> bool {
+        self.run_at_hour == current_hour
     }
 
     pub fn run(&self) {
-        let mut happened_map: HashMap<&Job, bool> = HashMap::new();
-        let mut current_time = self.current_time;
-        loop {
-            sleep(Duration::from_secs(1));
-            current_time = current_time + Duration::from_secs(1);
-            for job in self.jobs.iter() {
-                match happened_map.get(job) {
+        (self.cb)();
+    }
+}
+
+pub trait Timer {
+    fn next_sec<F: FnMut(NaiveDateTime)>(&self, cb: F);
+}
+
+pub struct Scheduler {}
+
+impl Scheduler {
+    pub fn new() -> Self {
+        Self {}
+    }
+
+    pub fn run<T: Timer>(&self, timer: T, jobs: Vec<PeriodicJob>) {
+        let mut happened_map: HashMap<Uuid, bool> = HashMap::new();
+        timer.next_sec(|dt| {
+            for job in jobs.iter() {
+                match happened_map.get(&job.uuid) {
                     Some(happened) => {
-                        if !*happened {
-                            happened_map.insert(job, job.run(current_time.hour()));
+                        if job.time_is_come(dt.hour()) {
+                            if !*happened {
+                                job.run();
+                                happened_map.insert(job.uuid, true);
+                            }
+                        } else {
+                            happened_map.insert(job.uuid, false);
                         }
                     }
                     None => {
-                        happened_map.insert(job, job.run(current_time.hour()));
+                        if job.time_is_come(dt.hour()) {
+                            job.run();
+                            happened_map.insert(job.uuid, true);
+                        }
                     }
                 }
             }
-        }
+        });
     }
 }
