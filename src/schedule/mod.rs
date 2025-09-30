@@ -1,6 +1,6 @@
 use chrono::{NaiveDateTime, Timelike};
 use std::collections::HashMap;
-use uuid::{uuid, Uuid};
+use uuid::{Uuid};
 
 pub struct PeriodicJob {
     uuid: Uuid,

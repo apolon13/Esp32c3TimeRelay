@@ -24,11 +24,6 @@ impl Request {
         Ok(Request { client })
     }
 
-    pub fn new_http() -> Result<Self, anyhow::Error> {
-        let client = Client::wrap(EspHttpConnection::new(&Default::default())?);
-        Ok(Request { client })
-    }
-
     pub fn time<T: DeserializeOwned>(
         &mut self,
         url: &str,
