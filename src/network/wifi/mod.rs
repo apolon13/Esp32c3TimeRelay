@@ -22,9 +22,12 @@ impl Display for Credentials {
 }
 
 impl Credentials {
-    pub fn new(ssid: String, password: String, auth_method: AuthMethod) -> Credentials {
+    pub fn new(ssid: String, password: String) -> Credentials {
         Credentials {
-            auth_method,
+            auth_method: match password.is_empty() { 
+                true => AuthMethod::None,
+                false => AuthMethod::WPA2Personal
+            },
             ssid,
             password,
         }

@@ -9,7 +9,6 @@ use crate::time::remote::Request;
 use anyhow::Result;
 use chrono::{NaiveDateTime, ParseResult};
 use dotenv_codegen::dotenv;
-use embedded_svc::wifi::AuthMethod;
 use esp_idf_svc::{eventloop::EspSystemEventLoop, hal::prelude::Peripherals};
 use network::wifi::{Connection, Credentials};
 use time::remote::model::NinjasResponse;
@@ -21,7 +20,6 @@ fn main() -> Result<()> {
     let creds = Credentials::new(
         dotenv!("SSID").to_string(),
         dotenv!("PASS").to_string(),
-        AuthMethod::WPA2Personal,
     );
     let connection = Connection::new(
         creds,

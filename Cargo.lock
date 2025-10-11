@@ -637,6 +637,7 @@ dependencies = [
  "embedded-svc",
  "embuild",
  "esp-idf-svc",
+ "log",
  "serde",
  "serde_json",
  "uuid",
